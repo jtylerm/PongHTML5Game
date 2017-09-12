@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Pong!</title>
+    <script src="GameManager.js"></script>
+</head>
+<body>
+    <img id="ball1" src="Art/ballSprite-1.png" style="display: none" />
+    <img id="ball2" src="Art/ballSprite-2.png" style="display: none" />
+    <img id="ball3" src="Art/ballSprite-3.png" style="display: none" />
+    <img id="ball4" src="Art/ballSprite-4.png" style="display: none" />
+    <img id="ball5" src="Art/ballSprite-5.png" style="display: none" />
+    <img id="ball6" src="Art/ballSprite-6.png" style="display: none" />
+    <img id="ball7" src="Art/ballSprite-7.png" style="display: none" />
+    <img id="ball8" src="Art/ballSprite-8.png" style="display: none" />
+    <canvas id="gameCanvas" width="800" height ="600"></canvas>
+    <button onclick="getTopScores()">Get Top Scores</button>
+
+    <div id='recordScoreContainer'>
+        <form id="recordScoreForm">
+            <input id='initials' name='initials' type="text" />
+            <input id="submitBtn" type='submit' value="Submit" />
+            <input id="cancelBtn" type="button" value="Cancel" />
+        </form>
+    </div>
+    <script src="./app.js"></script>
+</body>
+</html>

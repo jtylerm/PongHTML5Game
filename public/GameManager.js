@@ -1,15 +1,22 @@
 var canvas;
 var canvasContext;
 
+const GAME_STATE_LOADING = 'loading';
+const GAME_STATE_IN_ROUND = 'in-round';
+const GAME_STATE_SCORE = 'score';
+const GAME_STATE_CONTINUE = 'continue';
+var gameState = GAME_STATE_LOADING;
+
+var startTime = null;
+var ballImages = [];
+const BALL_IMAGE_DURATION = 100;
+
 var playerScore = 0;
 var opponentScore = 0;
 const WINNING_SCORE = 3;
 
-var showWinScreen = false;
-
 var ballPosX = 50;
 var ballPosY = 100;
-var ballRadius = 10;
 var ballSpeedX = 10;
 var ballSpeedY = 4;
 
@@ -19,7 +26,7 @@ var opponentPaddlePosY = 250;
 const OPPONENT_PADDLE_SPEED = 6;
 
 const PADDLE_HEIGHT = 100;
-const PADDLE_WIDTH = 10;
+const PADDLE_WIDTH = 25;
 
 const SPEED_DAMPENING = 0.35;
 
@@ -27,6 +34,7 @@ var gameBGImage = null;
 var playerPaddleImage = null;
 var opponentPaddleImage = null;
 var ballImage = null;
+
 
 function calculateMousePos(evt) {
     var rect = canvas.getBoundingClientRect();
@@ -41,10 +49,11 @@ function calculateMousePos(evt) {
 }
 
 function HandleMouseClick(evt) {
-    if(showWinScreen) {
+    if(gameState === GAME_STATE_CONTINUE) {
         playerScore = 0;
         opponentScore = 0;
-        showWinScreen = false;
+
+        gameState = GAME_STATE_IN_ROUND;
     }
 }
 
@@ -52,6 +61,20 @@ window.onload = function() {
     canvas = document.getElementById("gameCanvas");
     canvasContext = canvas.getContext('2d');
 
+    // SET start time
+    startTime = new Date().getTime();
+
+    // populate ball images array
+    ballImages.push(document.getElementById('ball1'));
+    ballImages.push(document.getElementById('ball2'));
+    ballImages.push(document.getElementById('ball3'));
+    ballImages.push(document.getElementById('ball4'));
+    ballImages.push(document.getElementById('ball5'));
+    ballImages.push(document.getElementById('ball6'));
+    ballImages.push(document.getElementById('ball7'));
+    ballImages.push(document.getElementById('ball8'));
+
+    // console.log(JSON.stringify(ballImages));
 
 
     var bgImg = new Image();
@@ -72,13 +95,6 @@ window.onload = function() {
     }, false);
     tempOpponentPaddleImg.src = './Art/opponentPaddle.png';
 
-    var tempBallImg = new Image();
-    tempBallImg.addEventListener('load', function() {
-        ballImage = tempBallImg;
-    }, false);
-    tempBallImg.src = './Art/ballAnimated.gif';
-
-
 
     var framesPerSecond = 30;
     var oneSecond = 1000;
@@ -98,14 +114,14 @@ window.onload = function() {
             playerPaddlePosY = mousePos.y - (PADDLE_HEIGHT/2);
         }
     );
+
+    gameState = GAME_STATE_IN_ROUND;
+
+    var recordScoreContainer = document.getElementById('recordScoreContainer');
+    recordScoreContainer.style.display = "none";
 };
 
 function ResetBall() {
-    if(playerScore >= WINNING_SCORE || opponentScore >= WINNING_SCORE) {
-        console.log('resetting scores');
-        showWinScreen = true;
-    }
-
     ballSpeedX = -ballSpeedX;
     ballPosX = canvas.width/2;
     ballPosY = canvas.height/2;
@@ -124,8 +140,18 @@ function OpponentMovement() {
     }
 }
 
+function CheckForRoundEnd() {
+    if(playerScore >= WINNING_SCORE || opponentScore >= WINNING_SCORE) {
+        console.log('resetting scores');
+
+        gameState = GAME_STATE_SCORE;
+        recordScoreContainer.style.display = "";
+    }
+}
+
 function MoveEverything() {
-    if(showWinScreen) {
+    if(gameState != GAME_STATE_IN_ROUND) {
+        // don't move when not in round
         return;
     }
 
@@ -145,7 +171,7 @@ function MoveEverything() {
     }
 
     // opponent misses ball
-    if(ballPosX > canvas.width) {
+    if(ballPosX > canvas.width - PADDLE_WIDTH) {
         if(ballPosY > opponentPaddlePosY && ballPosY < opponentPaddlePosY + PADDLE_HEIGHT) {
             ballSpeedX = -ballSpeedX;
 
@@ -155,11 +181,13 @@ function MoveEverything() {
         else {
             playerScore++;
             ResetBall();
+
+            CheckForRoundEnd();
         }
     }
 
     // player misses ball
-    if(ballPosX < 0) {
+    if(ballPosX < PADDLE_WIDTH) {
         if(ballPosY > playerPaddlePosY && ballPosY < playerPaddlePosY + PADDLE_HEIGHT) {
             ballSpeedX = -ballSpeedX;
 
@@ -169,7 +197,19 @@ function MoveEverything() {
         else {
             opponentScore++;
             ResetBall();
+
+            CheckForRoundEnd();
         }
+    }
+}
+
+function DrawBG() {
+    // OLD //
+    CreateColorRect(0, 0, canvas.width, canvas.height, 'black');
+
+    // background area
+    if(gameBGImage) {
+        canvasContext.drawImage(gameBGImage, 0, 0);
     }
 }
 
@@ -179,33 +219,15 @@ function DrawNet() {
     }
 }
 
-function DrawEverything() {
-    // OLD //
-    CreateColorRect(0, 0, canvas.width, canvas.height, 'black');
+function DrawScores() {
+    // player score
+    canvasContext.fillText(playerScore, 100, 100);
 
-    // background area
-    if(gameBGImage) {
-        canvasContext.drawImage(gameBGImage, 0, 0);
-    }
+    // opponent score
+    canvasContext.fillText(opponentScore, canvas.width - 100, 100);
+}
 
-    if(showWinScreen) {
-        canvasContext.fillStyle = 'white';
-
-        if(playerScore >= WINNING_SCORE) {
-            canvasContext.fillText("You Won!", 350, 200);
-        }
-        else if(opponentScore >= WINNING_SCORE) {
-            canvasContext.fillText("You Lost!", 350, 200);
-        }
-
-
-        canvasContext.fillText("Click To Continue", 350, 500);
-        return;
-    }
-
-    // draw the net
-    DrawNet();
-
+function DrawPaddles() {
     // player paddle
 
     if(playerPaddleImage) {
@@ -218,18 +240,52 @@ function DrawEverything() {
         canvasContext.drawImage(opponentPaddleImage, canvas.width - PADDLE_WIDTH, opponentPaddlePosY);
     }
     //CreateColorRect(canvas.width - PADDLE_WIDTH, opponentPaddlePosY, PADDLE_WIDTH, PADDLE_HEIGHT, 'white');
+}
+
+function DrawBall() {
+    var now = new Date().getTime();
+    var timeElapsed = now - startTime;
+    var ballImageChangeCount = timeElapsed/BALL_IMAGE_DURATION;
+    var imgIndex = Math.floor(ballImageChangeCount % ballImages.length);
+
+    var currentBallImage = ballImages[imgIndex];
+
+    //console.log('this is imgIndex: ' + imgIndex);
 
     // ball
-    if(ballImage) {
-        canvasContext.drawImage(ballImage, ballPosX - ballImage.width/2, ballPosY - ballImage.height/2);
-    }
+    canvasContext.drawImage(currentBallImage, ballPosX - currentBallImage.width/2, ballPosY - currentBallImage.height/2);
+
     // CreateCircle(ballPosX, ballPosY, ballRadius, 'white');
+}
 
-    // player score
-    canvasContext.fillText(playerScore, 100, 100);
+function DrawEverything() {
+    DrawBG();
 
-    // opponent score
-    canvasContext.fillText(opponentScore, canvas.width - 100, 100);
+    if(gameState === GAME_STATE_SCORE || gameState === GAME_STATE_CONTINUE) {
+        canvasContext.fillStyle = 'white';
+
+        if(playerScore >= WINNING_SCORE) {
+            canvasContext.fillText("You Won!", 350, 200);
+        }
+        else if(opponentScore >= WINNING_SCORE) {
+            canvasContext.fillText("You Lost!", 350, 200);
+        }
+
+        if(gameState === GAME_STATE_CONTINUE) { 
+            canvasContext.fillText("Click To Continue", 350, 500); 
+        }
+
+        return;
+    }
+
+    // draw the net
+    DrawNet();
+
+    DrawPaddles();
+
+    DrawBall();
+
+    DrawScores();
 }
 
 function CreateColorRect(leftX, topY, width, height, drawColor) {
